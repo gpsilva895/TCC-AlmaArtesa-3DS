@@ -395,20 +395,36 @@ export default function Perfil() {
             </button>
           </div>
         </div>
-        {campos.map(([nome, rotulo]) => (
-          <div key={nome} className="grid grid-cols-[140px_1fr] items-center gap-2">
-            <label className="text-sm font-medium text-right">{rotulo}:</label>
-            <input
-              name={nome}
-              value={form[nome]}
-              onChange={handleChange}
-              disabled={nome === 'email'}
-              placeholder={nome === 'telefone' ? '(xx) xxxxx-xxxx' : nome === 'cep' ? '00000-000' : nome === 'estado' ? 'SP' : undefined}
-              maxLength={nome === 'telefone' ? 15 : nome === 'cep' ? 9 : nome === 'estado' ? 2 : undefined}
-              className="campo-input disabled:opacity-60"
-            />
-          </div>
-        ))}
+                {campos.map(([nome, rotulo]) =>
+          nome === 'tipo_residencia' ? (
+            <div key={nome} className="grid grid-cols-[140px_1fr] items-center gap-2">
+              <label className="text-sm font-medium text-right">{rotulo}:</label>
+              <select
+                name={nome}
+                value={form[nome] || 'residencial'}
+                onChange={handleChange}
+                className="campo-input"
+              >
+                <option value="residencial">Residencial</option>
+                <option value="comercial">Comercial</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          ) : (
+            <div key={nome} className="grid grid-cols-[140px_1fr] items-center gap-2">
+              <label className="text-sm font-medium text-right">{rotulo}:</label>
+              <input
+                name={nome}
+                value={form[nome]}
+                onChange={handleChange}
+                disabled={nome === 'email'}
+                placeholder={nome === 'telefone' ? '(xx) xxxxx-xxxx' : nome === 'cep' ? '00000-000' : nome === 'estado' ? 'SP' : undefined}
+                maxLength={nome === 'telefone' ? 15 : nome === 'cep' ? 9 : nome === 'estado' ? 2 : undefined}
+                className="campo-input disabled:opacity-60"
+              />
+            </div>
+          )
+        )}
         <div className="grid grid-cols-[140px_1fr] items-center gap-2">
           <label className="text-sm font-medium text-right">Senha:</label>
           <CampoSenha value={form.senha} onChange={handleChange} placeholder="Deixe em branco para manter" minLength={6} />

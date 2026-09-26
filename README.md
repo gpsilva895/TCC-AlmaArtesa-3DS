@@ -141,13 +141,3 @@ com um comando (`docker compose up -d`), API em `http://localhost:8000`
 (mesma porta usada no passo 3 acima), MySQL em `localhost:3306`, usuário
 `root`, senha `alma123`. Nesse caso ajuste `DB_PASS=alma123` se for
 comparar com o método do XAMPP.
-
-## Próximos passos sugeridos
-- Adicionar autenticação por token (JWT) nas rotas protegidas do PHP.
-- Criar os painéis de gestão do Artesão (produtos/estoque) e do Administrador
-  (usuários, pedidos, categorias) como novas páginas em `src/pages/admin/`.
-- Implementar upload de imagens de produto e foto de perfil (hoje é só um botão de placeholder).
-- Sincronizar o carrinho com a tabela `carrinho`/`item_carrinho` do banco
-  (hoje ele vive no `localStorage` do navegador; o `backend/api/carrinho.php`
-  já existe pronto para isso, só falta o front-end chamá-lo).
-

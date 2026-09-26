@@ -35,6 +35,19 @@ export function formatarCEP(valor) {
   return `${digitos.slice(0, 5)}-${digitos.slice(5)}`;
 }
 
+/** Formata CPF enquanto o usuário digita: 000.000.000-00. */
+export function formatarCPF(valor) {
+  const digitos = (valor || '').replace(/\D/g, '').slice(0, 11);
+  if (digitos.length <= 3) return digitos;
+  if (digitos.length <= 6) return `${digitos.slice(0, 3)}.${digitos.slice(3)}`;
+  if (digitos.length <= 9) return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`;
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
+}
+
+export function cpfValido(valor) {
+  return /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(valor || '');
+}
+
 export function cepValido(valor) {
   return /^\d{5}-\d{3}$/.test(valor || '');
 }

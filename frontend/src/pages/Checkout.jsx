@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../services/api.js';
-import { formatarPreco, formatarTelefone, telefoneValido, formatarCEP, cepValido } from '../utils/formatar.js';
+import { formatarPreco, formatarTelefone, telefoneValido, formatarCEP, cepValido, formatarCPF, cpfValido } from '../utils/formatar.js';
 
 export default function Checkout() {
   const { itens, total, limparCarrinho } = useCart();
@@ -24,6 +24,7 @@ export default function Checkout() {
     let valorFormatado = value;
     if (name === 'telefone') valorFormatado = formatarTelefone(value);
     if (name === 'cep') valorFormatado = formatarCEP(value);
+    if (name === 'cpf') valorFormatado = formatarCPF(value);
     setForm({ ...form, [name]: valorFormatado });
   }
 
@@ -34,6 +35,10 @@ export default function Checkout() {
       return;
     }
     setErro('');
+    if (!cpfValido(form.cpf)) {
+      setErro('Informe um CPF válido, no formato 000.000.000-00.');
+      return;
+    }
     if (!telefoneValido(form.telefone)) {
       setErro('Informe um telefone válido, no formato (xx) xxxxx-xxxx.');
       return;
@@ -76,7 +81,15 @@ export default function Checkout() {
         </div>
         <div>
           <label className="text-sm font-medium">CPF:</label>
-          <input name="cpf" value={form.cpf} onChange={handleChange} className="campo-input mt-1" required />
+          <input
+            name="cpf"
+            value={form.cpf}
+            onChange={handleChange}
+            placeholder="000.000.000-00"
+            maxLength={14}
+            className="campo-input mt-1"
+            required
+          />
         </div>
         <div>
           <label className="text-sm font-medium">Telefone:</label>
