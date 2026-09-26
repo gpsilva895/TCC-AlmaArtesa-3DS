@@ -1,0 +1,49 @@
+# Alma Artesã — Ambiente completo (MySQL + API PHP)
+# Uso:
+#   docker compose up -d
+#   (o MySQL já sobe com o schema.sql + produtos reais importados automaticamente)
+# API disponível em http://localhost:8000/api/...
+# MySQL disponível em localhost:3306 (usuário root / senha alma123)
+#
+# Depois, rode o front-end normalmente:
+#   cd frontend && npm install && npm run dev
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: alma-artesa-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: alma123
+      MYSQL_DATABASE: alma_artesa
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    container_name: alma-artesa-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: alma_artesa
+      DB_USER: root
+      DB_PASS: alma123
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+volumes:
+  db_data:

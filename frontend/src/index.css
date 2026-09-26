@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-creme text-marrom-escuro font-sans;
+  }
+  h1, h2, h3 {
+    @apply font-sans font-semibold;
+  }
+}
+
+@layer components {
+  .btn-primario {
+    @apply bg-terracota text-white px-4 py-2 text-sm rounded-md font-medium
+           hover:bg-terracota-dark transition-colors duration-200;
+  }
+  .btn-secundario {
+    @apply border border-terracota text-terracota px-4 py-2 text-sm rounded-md font-medium
+           hover:bg-terracota hover:text-white transition-colors duration-200;
+  }
+  .campo-input {
+    @apply w-full border border-bege rounded-md px-3 py-1.5 text-sm bg-white
+           focus:outline-none focus:ring-2 focus:ring-terracota/50;
+  }
+}
