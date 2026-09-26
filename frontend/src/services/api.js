@@ -66,4 +66,15 @@ export const api = {
     request('pedidos.php', { method: 'POST', body: JSON.stringify(dados) }),
   listarPedidos: (idUsuario) => request(`pedidos.php?id_usuario=${idUsuario}`),
   obterItensPedido: (idPedido) => request(`pedidos.php?id=${idPedido}`),
+
+  // Pagamento
+  obterPagamento: (idPedido) => request(`pagamentos.php?id_pedido=${idPedido}`),
+  confirmarPagamento: (idPedido, dados) =>
+    request(`pagamentos.php?id_pedido=${idPedido}`, { method: 'PUT', body: JSON.stringify(dados) }),
+
+  // Avaliações
+  listarAvaliacoes: (idProduto, idUsuario) =>
+    request(`avaliacoes.php?id_produto=${idProduto}${idUsuario ? `&id_usuario=${idUsuario}` : ''}`),
+  criarAvaliacao: (dados) =>
+    request('avaliacoes.php', { method: 'POST', body: JSON.stringify(dados) }),
 };

@@ -9,6 +9,34 @@ import ProdutoCard from '../components/ProdutoCard.jsx';
 import IconePessoa from '../components/IconePessoa.jsx';
 import { formatarPreco } from '../utils/formatar.js';
 
+// Estrelas clicáveis para o usuário escolher a nota antes de enviar.
+function SeletorNota({ valor, onEscolher }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onEscolher(n)}
+          aria-label={`${n} estrela${n > 1 ? 's' : ''}`}
+          className="p-0.5"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={n <= valor ? '#B5623B' : 'none'} stroke="#B5623B" strokeWidth="1.5">
+            <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8L5.8 21l1.6-7L2 9.2l7.1-.6L12 2z" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function formatarDataAvaliacao(data) {
+  if (!data) return '';
+  const d = new Date(data.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return data;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export default function ProdutoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,6 +47,62 @@ export default function ProdutoDetalhe() {
   const [produto, setProduto] = useState(null);
   const [outros, setOutros] = useState([]);
   const [carregando, setCarregando] = useState(true);
+
+  // --- Avaliações (comentários + nota) ---
+  const [avaliacoes, setAvaliacoes] = useState([]);
+  const [podeAvaliar, setPodeAvaliar] = useState(false);
+  const [jaAvaliou, setJaAvaliou] = useState(false);
+  const [avaliacoesCarregando, setAvaliacoesCarregando] = useState(true);
+  const [avaliacoesErro, setAvaliacoesErro] = useState('');
+  const [notaForm, setNotaForm] = useState(0);
+  const [comentarioForm, setComentarioForm] = useState('');
+  const [enviandoAvaliacao, setEnviandoAvaliacao] = useState(false);
+  const [erroAvaliacao, setErroAvaliacao] = useState('');
+
+  function carregarAvaliacoes() {
+    setAvaliacoesCarregando(true);
+    api
+      .listarAvaliacoes(id, usuario?.id_usuario)
+      .then((dados) => {
+        setAvaliacoes(dados.avaliacoes || []);
+        setPodeAvaliar(!!dados.pode_avaliar);
+        setJaAvaliou(!!dados.ja_avaliou);
+      })
+      .catch((e) => setAvaliacoesErro(e.message))
+      .finally(() => setAvaliacoesCarregando(false));
+  }
+
+  useEffect(() => {
+    carregarAvaliacoes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, usuario]);
+
+  async function handleEnviarAvaliacao(e) {
+    e.preventDefault();
+    setErroAvaliacao('');
+    if (notaForm < 1) {
+      setErroAvaliacao('Escolha uma nota de 1 a 5 estrelas.');
+      return;
+    }
+    setEnviandoAvaliacao(true);
+    try {
+      await api.criarAvaliacao({
+        id_usuario: usuario.id_usuario,
+        id_produto: produto.id_produto,
+        nota: notaForm,
+        comentario: comentarioForm,
+      });
+      setNotaForm(0);
+      setComentarioForm('');
+      carregarAvaliacoes();
+      // Recarrega o produto para atualizar a média de estrelas exibida.
+      api.obterProduto(id).then((dados) => setProduto(dados)).catch(() => {});
+    } catch (e) {
+      setErroAvaliacao(e.message);
+    } finally {
+      setEnviandoAvaliacao(false);
+    }
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -144,6 +228,72 @@ export default function ProdutoDetalhe() {
           </button>
         </div>
       </div>
+
+      {/* Avaliações e comentários */}
+      <section className="bg-white border border-bege rounded-lg p-5 mt-10">
+        <h2 className="text-lg font-semibold mb-4">Avaliações</h2>
+
+        {usuario && podeAvaliar && (
+          <form onSubmit={handleEnviarAvaliacao} className="border border-bege rounded-md p-4 mb-5 flex flex-col gap-3">
+            <p className="text-sm font-medium">Deixe sua avaliação sobre este produto:</p>
+            <SeletorNota valor={notaForm} onEscolher={setNotaForm} />
+            <textarea
+              value={comentarioForm}
+              onChange={(e) => setComentarioForm(e.target.value)}
+              placeholder="Escreva um comentário (opcional)"
+              className="campo-input min-h-[70px]"
+            />
+            {erroAvaliacao && <p className="text-sm text-red-600">{erroAvaliacao}</p>}
+            <button type="submit" disabled={enviandoAvaliacao} className="btn-primario self-start px-6">
+              {enviandoAvaliacao ? 'Enviando...' : 'Enviar avaliação'}
+            </button>
+          </form>
+        )}
+
+        {usuario && jaAvaliou && (
+          <p className="text-sm text-marrom/70 mb-5">Você já avaliou este produto. Obrigado pelo feedback!</p>
+        )}
+
+        {usuario && !podeAvaliar && !jaAvaliou && !avaliacoesCarregando && (
+          <p className="text-sm text-marrom/70 mb-5">Só é possível avaliar produtos que você já comprou.</p>
+        )}
+
+        {!usuario && (
+          <p className="text-sm text-marrom/70 mb-5">
+            <Link to="/login" className="text-terracota underline">Entre na sua conta</Link> para avaliar este produto (disponível para quem já comprou).
+          </p>
+        )}
+
+        {avaliacoesCarregando ? (
+          <p className="text-sm text-marrom/70">Carregando avaliações...</p>
+        ) : avaliacoesErro ? (
+          <p className="text-sm text-red-600">{avaliacoesErro}</p>
+        ) : avaliacoes.length === 0 ? (
+          <p className="text-sm text-marrom/70">Este produto ainda não tem avaliações.</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {avaliacoes.map((av) => (
+              <li key={av.id_avaliacao} className="border-t border-bege pt-3 first:border-t-0 first:pt-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-creme flex items-center justify-center overflow-hidden shrink-0">
+                      {av.foto_usuario ? (
+                        <img src={av.foto_usuario} alt={av.nome_usuario} className="w-full h-full object-cover" />
+                      ) : (
+                        <IconePessoa tamanho={16} />
+                      )}
+                    </span>
+                    <span className="text-sm font-medium">{av.nome_usuario}</span>
+                  </div>
+                  <span className="text-xs text-marrom/60">{formatarDataAvaliacao(av.data_avaliacao)}</span>
+                </div>
+                <div className="mt-1"><Estrelas media={av.nota} tamanho={14} /></div>
+                {av.comentario && <p className="text-sm text-marrom/80 mt-1">{av.comentario}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {outros.length > 0 && (
         <>

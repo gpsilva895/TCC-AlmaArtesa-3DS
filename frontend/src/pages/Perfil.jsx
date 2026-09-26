@@ -29,6 +29,13 @@ const STATUS_PEDIDO = {
   cancelado: 'Cancelado',
 };
 
+const FORMAS_PAGAMENTO = [
+  { valor: 'pix', rotulo: 'PIX' },
+  { valor: 'cartao_credito', rotulo: 'Cartão de crédito' },
+  { valor: 'cartao_debito', rotulo: 'Cartão de débito' },
+  { valor: 'boleto', rotulo: 'Boleto' },
+];
+
 function formatarDataPedido(data) {
   if (!data) return '';
   const d = new Date(data.replace(' ', 'T'));
@@ -55,6 +62,12 @@ export default function Perfil() {
   const [pedidoAberto, setPedidoAberto] = useState(null);
   const [itensPorPedido, setItensPorPedido] = useState({});
   const [itensCarregandoId, setItensCarregandoId] = useState(null);
+
+  // --- Pagamento de um pedido (embutido na própria lista, sem página nova) ---
+  const [formaPagamentoPorPedido, setFormaPagamentoPorPedido] = useState({});
+  const [processandoPagamentoId, setProcessandoPagamentoId] = useState(null);
+  const [erroPagamentoPorPedido, setErroPagamentoPorPedido] = useState({});
+  const [pagamentoAprovadoPorPedido, setPagamentoAprovadoPorPedido] = useState({});
 
   // --- Dados da loja (somente artesão) ---
   const [idArtesao, setIdArtesao] = useState(null);
@@ -143,6 +156,28 @@ export default function Perfil() {
       setPedidosErro(e.message);
     } finally {
       setItensCarregandoId(null);
+    }
+  }
+
+  async function handleConfirmarPagamento(idPedido) {
+    setErroPagamentoPorPedido((atual) => ({ ...atual, [idPedido]: '' }));
+    setProcessandoPagamentoId(idPedido);
+    try {
+      const resultado = await api.confirmarPagamento(idPedido, {
+        id_usuario: usuario.id_usuario,
+        forma_pagamento: formaPagamentoPorPedido[idPedido] || 'pix',
+      });
+      setPagamentoAprovadoPorPedido((atual) => ({
+        ...atual,
+        [idPedido]: resultado.codigo_transacao || true,
+      }));
+      setPedidos((atual) =>
+        atual.map((p) => (p.id_pedido === idPedido ? { ...p, status: 'pago' } : p))
+      );
+    } catch (e) {
+      setErroPagamentoPorPedido((atual) => ({ ...atual, [idPedido]: e.message }));
+    } finally {
+      setProcessandoPagamentoId(null);
     }
   }
 
@@ -483,6 +518,48 @@ export default function Perfil() {
                       )}
                       {p.codigo_rastreio && (
                         <p className="text-sm text-marrom/80 mt-2">Código de rastreio: {p.codigo_rastreio}</p>
+                      )}
+
+                      {p.status === 'aguardando_pagamento' && (
+                        pagamentoAprovadoPorPedido[p.id_pedido] ? (
+                          <div className="mt-3 border-t border-bege pt-3">
+                            <p className="text-sm text-green-700 font-medium">Pagamento aprovado!</p>
+                            {typeof pagamentoAprovadoPorPedido[p.id_pedido] === 'string' && (
+                              <p className="text-xs text-marrom/60 mt-1">
+                                Código da transação: {pagamentoAprovadoPorPedido[p.id_pedido]}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-3 border-t border-bege pt-3 flex flex-col gap-2">
+                            <label className="text-sm font-medium">Forma de pagamento:</label>
+                            <select
+                              value={formaPagamentoPorPedido[p.id_pedido] || 'pix'}
+                              onChange={(e) =>
+                                setFormaPagamentoPorPedido((atual) => ({
+                                  ...atual,
+                                  [p.id_pedido]: e.target.value,
+                                }))
+                              }
+                              className="campo-input"
+                            >
+                              {FORMAS_PAGAMENTO.map((f) => (
+                                <option key={f.valor} value={f.valor}>{f.rotulo}</option>
+                              ))}
+                            </select>
+                            {erroPagamentoPorPedido[p.id_pedido] && (
+                              <p className="text-sm text-red-600">{erroPagamentoPorPedido[p.id_pedido]}</p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmarPagamento(p.id_pedido)}
+                              disabled={processandoPagamentoId === p.id_pedido}
+                              className="btn-primario self-start px-4"
+                            >
+                              {processandoPagamentoId === p.id_pedido ? 'Processando...' : 'Finalizar pagamento'}
+                            </button>
+                          </div>
+                        )
                       )}
                     </div>
                   )}
